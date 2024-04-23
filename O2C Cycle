@@ -1,0 +1,175 @@
+What is O2C Cycle?
+
+The order to cash cycle, often abbreviated to O2C or OTC, is how your business receives, processes, manages, 
+and completes customer orders. This means handling all aspects of the sale including shipping the items, collecting the payment, 
+creating invoices, and reporting on the end-to-end process. The OTC impacts your bottom line and relationships with your customers, 
+so the process must be well-optimized.
+
+
+In O2C Cycle, 4 modules are involved:-
+1. Inventory
+2. Order Management
+3. Account Receivable
+4. General Ledger
+
+Step 1). Create a new item.
+
+Go to Inventory -> Items -> Choose an org -> Master Items
+
+Give item name, description and then go to tools-> copy from finished goods and click apply, item will be created.
+In ES, the new item comes from ERP through Item Interface, we do not create it by ourselves.
+
+Ask N.D. for it as he has created  anew item in ESUAT.
+
+The item information will be found in mtl_system_items_b -> base table. with segment1 as Item field.
+
+Since no new item could be created, we are taking  '2881095885' with creation_date => 20-MAY-22 , as an example item to do the further steps.
+
+
+We can assign an item to all the other orgs using Master Items form by going to this third tab on the left of the screen and then assign that item to the org to which we want.
+
+
+
+
+Step 2). Add stock in Inventory for an item.
+
+Since we have created the item, now it is available in our inventory and customer can now place
+Order for it, so we would also need to have stock for that Item now for a particular org. (CAW)
+
+
+For that, go to Inventory -> Transactions -> Misc transactions -> Choose CAW in ESUATA-Atleos -> Misc receipt.
+
+Give the item, give subinv , give quantity , give account and now item stock is successfully increased.
+
+Effected tables -> mtl_onhand_quantities_detail.
+
+Mtl_transaction_quantities.
+
+
+We can also see it on the onhand form.
+
+
+The inventory periods are close, so in order to open them, we can go to 
+Purchase Super User -> Setup -> Financials Accounting  -> Control Purchasing Periods
+
+
+Since periods could not be opened in ESDEVA, we used ESUATA-Atleos for it. Took item '2881095885' in 'CAW'
+ org, created misc transaction for it for AVL subinventory and added 100 parts to it. 
+
+We can check the increased the quantity in mtl_onhand_quantities_detail table in the AVL sub for CAW org.
+
+
+
+
+We can also check the quantity from the front-end using the onhand form.
+
+
+
+
+
+Step 3). Since, we have added stock to the subinventory, now we are ready to get the orders from the customers.
+For that we are going to create a Sales Order now.
+
+Go to NCR Field Logistics SME User -> Order Management -> Sales Orders -> Choose the yellow icon -> Choose NCR_OU.
+
+Choose Operating Unit as 'CA Field Operating Unit' -> Choose a customer with Ship to and Bill to 
+(Zachary McCabe) -> Then save using Cntrl+S.
+
+The order will start showing in the oe_order_headers_all table with status as Entered.
+
+Sold_from_org_id is the operating unit's org id from hr_operating_units table.
+
+Sold_to_org_id is the cust_account_id from hz_cust_accounts table.
+
+Intially, the order flow status code will be in 'Entered' state.
+
+
+
+
+Now, go to others , and you can change the order priority. We changed the shipment_priority_code from Regulat to OVERNIGHT.
+
+
+
+
+It will also be reflected in the ooha.shipment_priority_code column.
+
+
+
+As of now, there is no line for this header_id in the ooha table. It will be added once we add lines to this order.
+
+Add ordered_item => 2881095885 and quantity=1 and save. It will start to show in oola.
+
+
+
+Tried to book the order-> got the following error
+
+
+
+Now, take one older order and try and replicate and book the new order in ESUATA-Atleos.
+
+
+SALES ORDER IN ESDEVA…
+
+We have taken the order-> 179942276 from ESUATA as template and trying to created SO in ESDEVA.
+
+First, give the operating unit , then customer, then order type, then go to lines and enter orderd item having some onhand.
+
+The availability for an item can be checked from 'availability' tab.
+
+Till now, the flow status code for the order would be 'ENTERED' in ooha and oola tables.
+
+Now, we are going to BOOK the order.
+
+Click on 'Book' button, the order will be booked if no errors are there.
+
+
+The order -> 180816143 has been booked in ESDEVA.
+
+
+
+
+The flow status code will be changed in oola and ooha tables.
+
+
+
+
+
+
+Go to 'Shipping Transactions' and see.
+
+-- The flow should be that an order should be in the 'Booked' status on the header level and 'awaiting shipping' status on the line level but my order in in the 'Booked' status on the line level as well due to which there are no records for that order in the wdd table.
+
+
+Check why?
+In the actions -> additional line info -> holds tab, I am not seeing any holds as well.
+
+Tried to Progress the order from the actions tab -> but did not work as well.
+
+
+The released status 'R' in wsh_delivery_details means -> Ready to Release.
+
+Wsh_delivery_assignments. Wdd.delivery_details_id
+
+
+
+-- My order went to awaiting shipping -> don't know why -> is there a program scheduled --> check/ask
+-- Check what this program does -> NCRPLREGPICKSHIP -> (NCR PL REGULAR PICK SHIP PRINT)
+
+
+Steps for SO ->
+Step1 ) . Book the order.
+In this step the tables ooha, oola will be populated.
+Once the order goes to 'Awaiting shipping' in oola table, then wdd table will also be populated, it will not be populated if the order shows Booked in oola.
+
+Wsh_delivery_details.source_header_id = ooha.header_id
+
+Now, the wda (wsh_delivery_assignments) will be populated  once order goes to 'AS'. 
+Wsh_delivery_assignments wda.delivery_detail_id = wdd.delivery_detail_id.
+
+For now, the delivery id will be null in wda.
+
+
+It will be populated once the order is pick released . For that, we will have to 'Launch Pick Release'… TBC
+
+
+SO Status -> Entered -> Booked -> Awaiting Shipping (Ready to Release) -> 
