@@ -112,7 +112,7 @@ SALES ORDER IN ESDEVA…
 
 We have taken the order-> 179942276 from ESUATA as template and trying to created SO in ESDEVA.
 
-First, give the operating unit , then customer, then order type, then go to lines and enter orderd item having some onhand.
+First, give the operating unit , then customer, then order type, then go to lines and enter ordered item having some onhand.
 
 The availability for an item can be checked from 'availability' tab.
 
@@ -155,6 +155,7 @@ Wsh_delivery_assignments. Wdd.delivery_details_id
 -- My order went to awaiting shipping -> don't know why -> is there a program scheduled --> check/ask
 -- Check what this program does -> NCRPLREGPICKSHIP -> (NCR PL REGULAR PICK SHIP PRINT)
 
+ESUATA Order -> 179942285
 
 Steps for SO ->
 Step1 ) . Book the order.
@@ -173,3 +174,127 @@ It will be populated once the order is pick released . For that, we will have to
 
 
 SO Status -> Entered -> Booked -> Awaiting Shipping (Ready to Release) -> 
+
+RELEASE THE ORDER
+
+
+When we release the order, the inventory people will release the item and will move it to staging area.
+
+The status will be changed in wdd from 'R' -> 'Y'. Y means 'Pick Released' not 'Pick Confirmed'.
+
+
+For now, the status is 'Ready to Release' which can be seen from Shipping Transactions form as well. Now, we will 'Pick Release' the order.
+
+
+
+For that, go to 'Actions' tab on Shipping Transactions -> 'Launch Pick Release'. It will submit a CP 'Pick Selection List Generation' which will 'Pick Release' the order.
+
+
+On successful completion of this program, the order will show 'Staged/Pick Confirmed'. The released_status for that is 'Y' in the wdd table.
+
+
+R means Ready to Release.
+
+S means Pick Released not Pick Confirmed.
+
+Y means Pick Confirmed.
+
+
+
+
+On being Staged/Pick Confirmed, the delivery_id will be generated for this order in the wsh_delivery_assignments table as well.
+
+
+
+
+
+
+Once the order is 'Pick Confirmed', one more table will be reflected -> 'mtl_reservations' which means that the items are reserved for the customer.
+
+The items are coming from inventory and will be located in staging area which means items are reserved for the customer.
+
+The reserved quantity for an item for a customer can be checked in mtl_reservations mr table.
+
+
+
+mr.DEMAND_SOURCE_LINE_ID = oola.LINE_ID
+
+
+Also, this new entry will be there in the mtl_new_deliveries mnd table.
+
+Mtl_new_deliveries.delivery_id = wsh_delivery_assignments.delivery_id
+
+
+
+Also, the status_code is 'Open' which means that the items are waiting for the shipping.
+
+
+Now, the next step is Ship Confirm
+
+
+For doing that, go to Shipping Transactions -> Delivery tab -> 'Ship Confirm'. It will submit a number of programs which will change the status of order to 'Shipped' and also the lines will be added to delivery details.
+
+
+
+
+The program, 'Interface Trip Stop' will be called on doing 'Ship Confirm'.
+
+
+
+
+The status will show 'Closed' in the 'Shipping Transactions' -> 'Delivery' tab .
+
+The 'Path By Stop' details will also be populated as follows.
+
+
+
+
+
+
+
+'Path By Trip' details will also be populated. Also check 'Order Organizer' and 'Sales Order' forms.
+
+
+
+
+
+
+
+
+
+There are no Invoices as of now.
+
+
+
+
+The flow status code in ooha and oola tables changed to Closed. 
+
+
+
+
+
+
+The released_status in wdd changed to 'C' means Shipped.
+
+
+
+In wsh_delivery_assignments, the status changed to CL -> completed(maybe)
+
+
+
+In mtl_reservations, there will be no record for this order because there are no reservations now i.e. the order has been shipped. It will only show the older transaction.
+
+
+
+
+
+
+
+First, 1 item is removed from inventory and moved to staging area that's why -1.
+Then, staging area , then transportation. Their sum is -1 , that is the final transaction quantity.
+
+
+The item goes from inventory to staging area then to transportation.
+
+
+Once, it is completed, the data is then Interfaced which can be checked in the Order Organizer -> View Delivery Details tab.
