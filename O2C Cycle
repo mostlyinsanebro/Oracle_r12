@@ -295,6 +295,168 @@ First, 1 item is removed from inventory and moved to staging area that's why -1.
 Then, staging area , then transportation. Their sum is -1 , that is the final transaction quantity.
 
 
+
+The item goes from inventory to staging area then to transportation.
+
+
+Once, it is completed, the data is then Interfaced which can be checked in the Order Organizer -> View Delivery Details tab.
+
+Effected tables -> 
+	1. oe_order_headers_all
+	2. oe_order_lines_all
+	3. Wsh_delivery_details
+	4. Wsh_delivery_asssignments
+	5. mtl_reservations  -- The item info will be removed from here once item is shipped and order is closed.
+	6. Mtl_onhand_quantities_detail
+	7. Mtl_material_transactions
+	
+	
+Now, our order is fulfilled, we are trying to generate the Invoice now.
+
+Invoicing is a critical step in the O2C process, as it represents the company's request for payment from the customer. The invoice must be accurate, complete, and easy to understand to ensure that the customer can make a timely payment.
+
+
+For that submit the 'WorkFlow Background Process' Program.
+
+Once the order is closed, the delivery line status is 'Interfaced'.
+
+	
+
+	
+
+Now, the data will be waiting in the Interface table. Table -> RA_INTERFACE_LINES_ALL rila
+
+
+Rila.Interface_Line_Attribute1 = ooha.Order_Number
+
+
+For now, there are no entries in ra_interface_lines_all table.
+
+We need to run the 'Workflow Background Process' to create the entry here.
+
+For now, we do not have any invoice information.
+
+Run 'Workflow Background Process'.
+
+
+	
+
+We still do not see any invoice generated and no records are there in the ra_interface_lines_all table.
+
+Submit one more program -> Workflow Background Process -> this time with Item Type as 'OM Order Line'.
+
+Still the Invoice is not generated -> Ask Ana or Nishikant Sir.
+
+TBC…
+
+
+Oe_order_holds_all table
+Y if the Order is released, N the Order is not released.
+
+
+
+Interface
+Now once the order is closed, it gets interfaced and it goes in the ra_interface_lines_all rila table.
+
+In application  -> Order Organizer -> Lines -> Addition Line Info -> Delivery Tab -> View Delivery Details
+
+
+
+So, as we can see the line status has been interfaced now as shown in the delivery tab.
+
+The data should have flown to ra_interface_lines_all table but it did not for some reason.
+
+Select rila.* from ra_interface_lines_all rila where INTERFACE_LINE_ATTRIBUTE1 = 181046113;
+
+
+Also, we do not have any invoice information, so for that we are going to run 'Workflow Background Processor'.
+
+
+For that go to view -> re -> submit new re and run 'Workflow Background Process' and choose Item Type => 'OM Order Line' or 'OM Standard'.
+
+We choose OM Order Line because we want to generate Invoice for Order Line only.
+
+Process deferred -> Y , timeout -> Y.
+
+Once this program is completed successfully, the our Order will start reflecting in ra_interface_lines_all table.
+
+Data did not reflect, still…
+
+Pick an order for which the records are already there in ra_interface_lines_all…
+
+
+When we create the order, the data comes to all the OM oe and wdd tables and on running Workflow Background Processor, the data flows through interaface (ra_interface_lines_all) tables and then to the ar_invoice base tables.
+
+Data from interface table to ar base table flows when Workflow Background Processor calls 'AutoInvoice Background Processor' program.
+
+Now, when we check the data in ra_interface_lines_all tables, the data will not be available as it must have flown to the ar base tables on completion of Workflow Background Processor.
+
+
+--------------------------  ACCOUNT RECEIVABLE ---------------------------------------
+
+Now, go to Receivables Vision Operations (USA) -> Transactions -> Transactions and search your order number there… we will see that the invoice will be generated for our Order.
+
+It can be searched from ra_customer_trx_all where trx_number = invoice_number;
+
+-- Queries
+
+SELECT ooh.order_number, ool.line_number, ool.ordered_item,
+       ool.ordered_quantity * ool.unit_selling_price,
+       rcta.trx_number invoice_number, rcta.trx_date, rctl.line_number,
+       rctl.unit_selling_price, ooh.org_id
+  FROM oe_order_headers_all ooh,
+       oe_order_lines_all ool,
+       ra_customer_trx_all rcta,
+       ra_customer_trx_lines_all rctl
+ WHERE ooh.header_id = ool.header_id
+   AND rcta.interface_header_context = 'ORDER ENTRY'
+   AND rctl.interface_line_context = 'ORDER ENTRY'
+   AND rctl.interface_line_attribute1 = TO_CHAR (ooh.order_number)
+   AND rctl.interface_line_attribute6 = TO_CHAR (ool.line_id)
+   AND rctl.customer_trx_id = rcta.customer_trx_id
+   and ooh.creation_date>=sysdate-30
+  -- AND ooh.order_number = NVL (:p_order_number, ooh.order_number)
+   order by ooh.creation_date desc;
+   
+   
+-- 181046103
+
+-- My Query
+-- Query to get all the order for the last 30 days for which invoice has been created and data flown to ra_customer_trx_lines_all and
+-- ra_customer_trx_All tables.
+SELECT INTERFACE_LINE_ATTRIBUTE1 order_number from ra_customer_trx_all rcta,
+ra_customer_trx_lines_all rctla,
+oe_order_lines_all oola
+where INTERFACE_LINE_ATTRIBUTE6 = to_char(oola.line_id)
+and rcta.customer_trx_id = rctla.customer_trx_id
+and request_date>=sysdate-30;
+
+-- For now, I am picking up the data for order 181046102.
+
+SELECT * from oe_order_headers_all where order_number = 181046102;
+
+-- Invoice number for 181046102 is 900001 as can be seen in order_organizer -> invoices -> number.
+
+SELECT rctla.INTERFACE_LINE_ATTRIBUTE1 as order_number,rcta.* from ra_customer_trx_all rcta,
+ra_customer_trx_lines_all rctla
+where rcta.customer_trx_id = rctla.customer_trx_id
+and rcta.TRX_NUMBER = 900001
+order by rcta.creation_date desc;
+
+
+-- To find taxation information…
+select * from ra_cust_trx_line_gl_dist_all where customer_trx_id = '31442133';
+
+-- account_class_info => REC means total_amount after tax and account_class_infor => REV means total_amount before tax.
+
+
+-- Try and recreate an order like 181046102
+
+
+New order -> 181046114
+
+
+
 The item goes from inventory to staging area then to transportation.
 
 
